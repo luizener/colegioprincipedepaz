@@ -1,1 +1,731 @@
-k3,$n@19w*Ly
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Galería por Categorías</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0e0e0e;
+    --surface: #161616;
+    --surface2: #1f1f1f;
+    --border: #2a2a2a;
+    --accent: #c8f04a;
+    --accent2: #4af0c8;
+    --text: #efefef;
+    --muted: #555;
+    --muted2: #888;
+    --sidebar: 270px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── TOP BAR ── */
+  .topbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0.9rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+
+  .topbar h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.3rem;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+  }
+
+  .topbar h1 span { color: var(--accent); }
+
+  .csv-form {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+    min-width: 260px;
+  }
+
+  .csv-form input {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    padding: 0.5rem 0.8rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .csv-form input:focus { border-color: var(--accent); }
+  .csv-form input::placeholder { color: var(--muted); }
+
+  .btn {
+    cursor: pointer;
+    border: none;
+    border-radius: 3px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 0.5rem 1rem;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .btn-primary { background: var(--accent); color: #0e0e0e; font-weight: 500; }
+  .btn-primary:hover { background: #d8ff55; }
+  .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--muted2); }
+  .btn-ghost:hover { border-color: var(--muted2); color: var(--text); }
+
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: auto;
+  }
+
+  .size-btns { display: flex; gap: 3px; }
+  .size-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    padding: 0.3rem 0.55rem;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .size-btn.active { border-color: var(--accent); color: var(--accent); }
+  .size-btn:hover { border-color: var(--muted2); color: var(--text); }
+
+  #status {
+    font-size: 0.68rem;
+    color: var(--muted2);
+    white-space: nowrap;
+  }
+
+  /* ── LAYOUT ── */
+  .layout {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    height: calc(100vh - 57px);
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: var(--sidebar);
+    min-width: var(--sidebar);
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 1rem 0;
+    flex-shrink: 0;
+  }
+
+  .sidebar::-webkit-scrollbar { width: 4px; }
+  .sidebar::-webkit-scrollbar-track { background: transparent; }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .sidebar-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 0.4rem 1.2rem 0.8rem;
+  }
+
+  .cat-item {
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .cat-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.55rem 1.2rem;
+    font-size: 0.75rem;
+    color: var(--muted2);
+    transition: all 0.15s;
+    border-left: 2px solid transparent;
+    gap: 0.5rem;
+  }
+
+  .cat-header:hover { color: var(--text); background: var(--surface2); }
+
+  .cat-header.active {
+    color: var(--accent);
+    border-left-color: var(--accent);
+    background: rgba(200, 240, 74, 0.06);
+  }
+
+  .cat-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .cat-count {
+    font-size: 0.6rem;
+    background: var(--surface2);
+    color: var(--muted);
+    padding: 0.15rem 0.4rem;
+    border-radius: 10px;
+    flex-shrink: 0;
+  }
+
+  .cat-arrow {
+    font-size: 0.55rem;
+    transition: transform 0.2s;
+    flex-shrink: 0;
+  }
+
+  .cat-item.open .cat-arrow { transform: rotate(90deg); }
+
+  .subcat-list {
+    display: none;
+    padding: 0.2rem 0;
+  }
+
+  .cat-item.open .subcat-list { display: block; }
+
+  .subcat-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.4rem 1.2rem 0.4rem 2rem;
+    font-size: 0.68rem;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    border-left: 2px solid transparent;
+    gap: 0.5rem;
+  }
+
+  .subcat-item:hover { color: var(--text); background: var(--surface2); }
+
+  .subcat-item.active {
+    color: var(--accent2);
+    border-left-color: var(--accent2);
+    background: rgba(74, 240, 200, 0.05);
+  }
+
+  .subcat-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .sidebar-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 0.6rem 1rem;
+  }
+
+  /* ── GALLERY AREA ── */
+  .main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.5rem;
+  }
+
+  .main::-webkit-scrollbar { width: 6px; }
+  .main::-webkit-scrollbar-track { background: transparent; }
+  .main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  .breadcrumb {
+    font-size: 0.68rem;
+    color: var(--muted);
+    margin-bottom: 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .breadcrumb .bc-sep { color: var(--border); }
+  .breadcrumb .bc-active { color: var(--text); }
+  .breadcrumb .bc-count { color: var(--muted); margin-left: 0.5rem; }
+
+  #gallery {
+    display: grid;
+    gap: 0.8rem;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+
+  #gallery.size-sm { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+  #gallery.size-md { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+  #gallery.size-lg { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
+
+  .card {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    aspect-ratio: 1;
+    cursor: pointer;
+    animation: fadeUp 0.25s ease both;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.3s ease;
+  }
+
+  .card:hover img { transform: scale(1.05); }
+
+  .card .overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 50%);
+    opacity: 0;
+    transition: opacity 0.2s;
+    display: flex;
+    align-items: flex-end;
+    padding: 0.6rem;
+  }
+
+  .card:hover .overlay { opacity: 1; }
+
+  .overlay-text {
+    font-size: 0.6rem;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .card.error {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 0.4rem;
+    font-size: 0.6rem;
+    color: var(--muted);
+  }
+
+  .card.error::before { content: '✕'; font-size: 1.8rem; color: var(--border); }
+
+  /* Empty / loading states */
+  .state-msg {
+    grid-column: 1/-1;
+    text-align: center;
+    padding: 5rem 2rem;
+    color: var(--muted);
+    font-size: 0.78rem;
+    line-height: 2;
+  }
+
+  .state-msg .ico { font-size: 2.5rem; display: block; margin-bottom: 1rem; }
+
+  .spinner {
+    width: 28px;
+    height: 28px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    margin: 0 auto 1rem;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── LIGHTBOX ── */
+  #lightbox {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.93);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    cursor: zoom-out;
+  }
+
+  #lightbox.open { display: flex; }
+
+  #lightbox img {
+    max-width: 90vw;
+    max-height: 90vh;
+    object-fit: contain;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    animation: fadeUp 0.2s ease;
+    cursor: default;
+  }
+
+  .lb-close {
+    position: absolute;
+    top: 1.2rem;
+    right: 1.2rem;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted2);
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+  }
+  .lb-close:hover { border-color: var(--text); color: var(--text); }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 700px) {
+    :root { --sidebar: 220px; }
+    .topbar { gap: 0.6rem; }
+    .csv-form { min-width: 0; width: 100%; order: 3; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <h1>Gallery <span>//</span></h1>
+
+  <div class="csv-form">
+    <button class="btn btn-primary" onclick="openPasteModal()">📋 Pegar CSV</button>
+    <button class="btn btn-ghost" onclick="loadDemo()">Demo</button>
+  </div>
+
+  <div class="topbar-right">
+    <div class="size-btns">
+      <button class="size-btn" onclick="setSize('sm',this)">S</button>
+      <button class="size-btn active" onclick="setSize('md',this)">M</button>
+      <button class="size-btn" onclick="setSize('lg',this)">L</button>
+    </div>
+    <span id="status"></span>
+  </div>
+</div>
+
+<!-- LAYOUT -->
+<div class="layout">
+  <!-- SIDEBAR -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-label">Categorías</div>
+    <div id="catList">
+      <div style="padding:1rem 1.2rem;font-size:0.68rem;color:var(--muted);">Carga un CSV para ver las categorías</div>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="breadcrumb" id="breadcrumb">
+      <span>Todas las imágenes</span>
+    </div>
+    <div id="gallery">
+      <div class="state-msg">
+        <span class="ico">📂</span>
+        Pega la URL de tu CSV arriba y haz clic en <strong>Cargar</strong><br>
+        <span style="font-size:0.65rem;color:var(--muted);">El CSV debe tener columnas: url, categoria, subcategoria</span>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- PASTE MODAL -->
+<div id="pasteModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:300;align-items:center;justify-content:center;">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:1.5rem;width:min(600px,95vw);display:flex;flex-direction:column;gap:1rem;">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <span style="font-size:0.7rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);">Pegar contenido del CSV</span>
+      <button class="lb-close" onclick="closePasteModal()" style="position:static;">✕</button>
+    </div>
+    <div style="font-size:0.68rem;color:var(--muted2);line-height:1.7;">
+      En Excel Online: selecciona todas las celdas → <kbd style="background:var(--surface2);padding:0.1rem 0.4rem;border-radius:2px;border:1px solid var(--border);">Ctrl+C</kbd> → pega aquí.<br>
+      Columnas esperadas: <code style="color:var(--accent)">url</code>, <code style="color:var(--accent)">categoria</code>, <code style="color:var(--accent)">subcategoria</code>
+    </div>
+    <textarea id="csvPaste" rows="10" style="background:var(--bg);border:1px solid var(--border);border-radius:3px;color:var(--text);font-family:'DM Mono',monospace;font-size:0.72rem;padding:0.8rem;outline:none;resize:vertical;line-height:1.6;" placeholder="url	categoria	subcategoria
+https://...	Campaña 2024	Exteriores
+https://...	Campaña 2024	Interiores"></textarea>
+    <div style="display:flex;gap:0.6rem;justify-content:flex-end;">
+      <button class="btn btn-ghost" onclick="closePasteModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="loadFromPaste()">▶ Cargar galería</button>
+    </div>
+  </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div id="lightbox" onclick="closeLightbox()">
+  <button class="lb-close" onclick="closeLightbox()">✕</button>
+  <img id="lb-img" src="" alt="" onclick="event.stopPropagation()">
+</div>
+
+<script>
+  // ── STATE ──
+  let allData = [];
+  let currentCat = null;
+  let currentSub = null;
+  let currentSize = 'md';
+
+  // ── PASTE MODAL ──
+  function openPasteModal() {
+    document.getElementById('pasteModal').style.display = 'flex';
+    setTimeout(() => document.getElementById('csvPaste').focus(), 100);
+  }
+
+  function closePasteModal() {
+    document.getElementById('pasteModal').style.display = 'none';
+  }
+
+  function loadFromPaste() {
+    const text = document.getElementById('csvPaste').value.trim();
+    if (!text) return alert('Pega el contenido del CSV primero');
+    closePasteModal();
+    parseAndRender(text);
+  }
+
+  function parseAndRender(text) {
+    const lines = text.trim().split('\n');
+    if (lines.length < 2) return alert('El CSV está vacío o mal formado');
+
+    // Detect separator
+    const sep = lines[0].includes(';') ? ';' : ',';
+    const headers = lines[0].split(sep).map(h => h.trim().toLowerCase().replace(/['"]/g, ''));
+
+    const iUrl = headers.findIndex(h => h.includes('url'));
+    const iCat = headers.findIndex(h => h.includes('categ'));
+    const iSub = headers.findIndex(h => h.includes('sub') || (h.includes('categ') && headers.indexOf(h) !== iCat));
+
+    if (iUrl === -1) return alert('No se encontró columna "url" en el CSV');
+
+    allData = lines.slice(1).map(line => {
+      const cols = splitCSVLine(line, sep);
+      return {
+        url: (cols[iUrl] || '').trim().replace(/^["']|["']$/g, ''),
+        cat: iCat >= 0 ? (cols[iCat] || 'Sin categoría').trim().replace(/^["']|["']$/g, '') : 'Sin categoría',
+        sub: iSub >= 0 ? (cols[iSub] || 'General').trim().replace(/^["']|["']$/g, '') : 'General',
+      };
+    }).filter(d => d.url);
+
+    setStatus(allData.length + ' imágenes cargadas');
+    buildSidebar();
+    showAll();
+  }
+
+  function splitCSVLine(line, sep) {
+    const result = [];
+    let cur = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (c === '"') { inQ = !inQ; }
+      else if (c === sep && !inQ) { result.push(cur); cur = ''; }
+      else { cur += c; }
+    }
+    result.push(cur);
+    return result;
+  }
+
+  // ── DEMO DATA ──
+  function loadDemo() {
+    const demo = `url,categoria,subcategoria
+https://picsum.photos/seed/a1/400/400,Arquitectura,Exteriores
+https://picsum.photos/seed/a2/400/400,Arquitectura,Exteriores
+https://picsum.photos/seed/a3/400/400,Arquitectura,Interiores
+https://picsum.photos/seed/a4/400/400,Arquitectura,Interiores
+https://picsum.photos/seed/n1/400/400,Naturaleza,Paisajes
+https://picsum.photos/seed/n2/400/400,Naturaleza,Paisajes
+https://picsum.photos/seed/n3/400/400,Naturaleza,Flora
+https://picsum.photos/seed/n4/400/400,Naturaleza,Flora
+https://picsum.photos/seed/n5/400/400,Naturaleza,Fauna
+https://picsum.photos/seed/p1/400/400,Personas,Retratos
+https://picsum.photos/seed/p2/400/400,Personas,Retratos
+https://picsum.photos/seed/p3/400/400,Personas,Grupos
+https://picsum.photos/seed/t1/400/400,Tecnología,Dispositivos
+https://picsum.photos/seed/t2/400/400,Tecnología,Dispositivos
+https://picsum.photos/seed/t3/400/400,Tecnología,Infraestructura`;
+    parseAndRender(demo);
+    setStatus('Demo cargado · 15 imágenes');
+  }
+
+  // ── SIDEBAR ──
+  function buildSidebar() {
+    const tree = {};
+    allData.forEach(d => {
+      if (!tree[d.cat]) tree[d.cat] = {};
+      if (!tree[d.cat][d.sub]) tree[d.cat][d.sub] = 0;
+      tree[d.cat][d.sub]++;
+    });
+
+    const catList = document.getElementById('catList');
+    catList.innerHTML = '';
+
+    // "Todas" option
+    const allItem = document.createElement('div');
+    allItem.className = 'cat-header active';
+    allItem.style.cursor = 'pointer';
+    allItem.innerHTML = `<span class="cat-name">Todas</span><span class="cat-count">${allData.length}</span>`;
+    allItem.addEventListener('click', () => { showAll(); setActiveCat(allItem, null); });
+    catList.appendChild(allItem);
+
+    const div = document.createElement('div');
+    div.className = 'sidebar-divider';
+    catList.appendChild(div);
+
+    Object.entries(tree).forEach(([cat, subs]) => {
+      const total = Object.values(subs).reduce((a, b) => a + b, 0);
+      const item = document.createElement('div');
+      item.className = 'cat-item';
+
+      const header = document.createElement('div');
+      header.className = 'cat-header';
+      header.innerHTML = `
+        <span class="cat-name">${cat}</span>
+        <span class="cat-count">${total}</span>
+        <span class="cat-arrow">▶</span>
+      `;
+      header.addEventListener('click', (e) => {
+        item.classList.toggle('open');
+        setActiveCat(header, cat);
+        showCategory(cat, null);
+      });
+
+      const subList = document.createElement('div');
+      subList.className = 'subcat-list';
+
+      Object.entries(subs).forEach(([sub, count]) => {
+        const si = document.createElement('div');
+        si.className = 'subcat-item';
+        si.innerHTML = `<span class="subcat-name">${sub}</span><span class="cat-count">${count}</span>`;
+        si.addEventListener('click', (e) => {
+          e.stopPropagation();
+          setActiveSub(si);
+          showCategory(cat, sub);
+        });
+        subList.appendChild(si);
+      });
+
+      item.appendChild(header);
+      item.appendChild(subList);
+      catList.appendChild(item);
+    });
+
+    // Store allItem ref for reset
+    window._allItem = allItem;
+  }
+
+  function setActiveCat(el, cat) {
+    document.querySelectorAll('.cat-header, .subcat-item').forEach(e => e.classList.remove('active'));
+    el.classList.add('active');
+    currentCat = cat;
+    currentSub = null;
+  }
+
+  function setActiveSub(el) {
+    document.querySelectorAll('.cat-header, .subcat-item').forEach(e => e.classList.remove('active'));
+    el.classList.add('active');
+  }
+
+  // ── RENDER ──
+  function showAll() {
+    currentCat = null; currentSub = null;
+    setBreadcrumb('Todas las imágenes', null, null, allData.length);
+    renderGallery(allData);
+    if (window._allItem) {
+      document.querySelectorAll('.cat-header, .subcat-item').forEach(e => e.classList.remove('active'));
+      window._allItem.classList.add('active');
+    }
+  }
+
+  function showCategory(cat, sub) {
+    currentCat = cat; currentSub = sub;
+    const filtered = allData.filter(d => d.cat === cat && (sub === null || d.sub === sub));
+    setBreadcrumb('Todas', cat, sub, filtered.length);
+    renderGallery(filtered);
+  }
+
+  function renderGallery(data) {
+    const gallery = document.getElementById('gallery');
+    gallery.innerHTML = '';
+    gallery.className = 'size-' + currentSize;
+
+    if (!data.length) {
+      gallery.innerHTML = '<div class="state-msg"><span class="ico">🔍</span>No hay imágenes en esta selección</div>';
+      return;
+    }
+
+    data.forEach((d, i) => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.style.animationDelay = Math.min(i * 20, 400) + 'ms';
+
+      const img = document.createElement('img');
+      img.src = d.url;
+      img.alt = d.sub;
+      img.loading = 'lazy';
+
+      img.onerror = () => {
+        card.classList.add('error');
+        card.title = 'No se pudo cargar:\n' + d.url;
+        img.remove();
+      };
+
+      const overlay = document.createElement('div');
+      overlay.className = 'overlay';
+      overlay.innerHTML = `<span class="overlay-text">${d.sub}</span>`;
+
+      card.appendChild(img);
+      card.appendChild(overlay);
+      card.addEventListener('click', () => openLightbox(d.url));
+      gallery.appendChild(card);
+    });
+  }
+
+  function setBreadcrumb(root, cat, sub, count) {
+    const bc = document.getElementById('breadcrumb');
+    let html = `<span style="cursor:pointer;color:var(--muted2)" onclick="showAll()">${root}</span>`;
+    if (cat) html += `<span class="bc-sep">›</span><span class="${!sub ? 'bc-active' : ''}" style="cursor:pointer" onclick="showCategory('${cat}',null)">${cat}</span>`;
+    if (sub) html += `<span class="bc-sep">›</span><span class="bc-active">${sub}</span>`;
+    html += `<span class="bc-count">(${count})</span>`;
+    bc.innerHTML = html;
+  }
+
+  // ── SIZE ──
+  function setSize(size, btn) {
+    currentSize = size;
+    document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('gallery').className = 'size-' + size;
+  }
+
+  // ── STATUS ──
+  function setStatus(msg) { document.getElementById('status').textContent = msg; }
+
+  // ── LIGHTBOX ──
+  function openLightbox(src) {
+    document.getElementById('lb-img').src = src;
+    document.getElementById('lightbox').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeLightbox() {
+    document.getElementById('lightbox').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeLightbox(); closePasteModal(); } });
+</script>
+</body>
+</html>
