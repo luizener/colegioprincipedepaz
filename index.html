@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Salones</title>
+<title>Galería por Categorías</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -457,7 +457,7 @@
     </div>
     <div style="font-size:0.68rem;color:var(--muted2);line-height:1.9;">
       Edita el archivo <code style="color:var(--accent);background:var(--surface2);padding:0.1rem 0.4rem;border-radius:2px;">index.html</code> en tu repo de GitHub y cambia la variable <code style="color:var(--accent);background:var(--surface2);padding:0.1rem 0.4rem;border-radius:2px;">CSV_URL</code> al inicio del script:<br><br>
-      <code style="color:var(--accent2);font-size:0.75rem;">const CSV_URL = 'https://raw.githubusercontent.com/luizener/colegioprincipedepaz/refs/heads/main/csvPrueba.csv';</code><br><br>
+      <code style="color:var(--accent2);font-size:0.75rem;">const CSV_URL = 'https://raw.githubusercontent.com/usuario/repo/main/datos.csv';</code><br><br>
       El CSV debe tener columnas: <code style="color:var(--accent)">url</code>, <code style="color:var(--accent)">categoria</code>, <code style="color:var(--accent)">subcategoria</code>
     </div>
     <div style="display:flex;gap:0.6rem;justify-content:flex-end;">
@@ -476,7 +476,7 @@
 <script>
   // ── CSV URL CONFIG ──
   // 👇 Cambia esta URL por la de tu CSV en GitHub raw
-  const CSV_URL = '';
+  const CSV_URL = 'https://raw.githubusercontent.com/luizener/colegioprincipedepaz/main/csvPrueba.csv';
   // Ejemplo: const CSV_URL = 'https://raw.githubusercontent.com/usuario/repo/main/datos.csv';
 
   async function loadCSVAuto() {
@@ -490,10 +490,7 @@
       document.getElementById('csv-source').textContent = CSV_URL.split('/').pop();
     } catch(e) {
       setStatus('Error al cargar CSV');
-      alert('No se pudo cargar el CSV.
-Verifica que la URL sea pública y correcta.
-
-' + e.message);
+      alert('No se pudo cargar el CSV. Verifica que la URL sea pública y correcta. ' + e.message);
     }
   }
 
