@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Galería por Categorías</title>
+<title>Salones UR - Dirección de Hábitat</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -405,12 +405,12 @@
 
 <!-- TOP BAR -->
 <div class="topbar">
-  <h1>Gallery <span>//</span></h1>
+  <h1>Galeria fotografica - salones UR <span>//</span></h1>
 
   <div class="csv-form">
     <span id="csv-source" style="font-size:0.68rem;color:var(--muted2);max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
     <button class="btn btn-ghost" onclick="loadCSVAuto()">↻ Recargar</button>
-    <button class="btn btn-ghost" onclick="loadDemo()">Demo</button>
+    <!--button class="btn btn-ghost" onclick="loadDemo()">Demo</button-->
   </div>
 
   <div class="topbar-right">
@@ -436,7 +436,7 @@
   <!-- MAIN -->
   <main class="main">
     <div class="breadcrumb" id="breadcrumb">
-      <span>Todas las imágenes</span>
+      <span style="color:var(--muted)">Selecciona una subcategoría</span>
     </div>
     <div id="gallery">
       <div class="state-msg">
@@ -490,7 +490,7 @@
       document.getElementById('csv-source').textContent = CSV_URL.split('/').pop();
     } catch(e) {
       setStatus('Error al cargar CSV');
-      alert('No se pudo cargar el CSV. Verifica que la URL sea pública y correcta. ' + e.message);
+      alert('No se pudo cargar el CSV. Verifica que la URL sea pública y correcta.' + e.message);
     }
   }
 
@@ -547,9 +547,9 @@
       };
     }).filter(d => d.url);
 
-    setStatus(allData.length + ' imágenes cargadas');
+    setStatus(allData.length + ' espacios · selecciona una categoría');
     buildSidebar();
-    showAll();
+    showEmptySelection();
   }
 
   function splitCSVLine(line, sep) {
@@ -599,18 +599,6 @@ https://picsum.photos/seed/t3/400/400,Tecnología,Infraestructura`;
     const catList = document.getElementById('catList');
     catList.innerHTML = '';
 
-    // "Todas" option
-    const allItem = document.createElement('div');
-    allItem.className = 'cat-header active';
-    allItem.style.cursor = 'pointer';
-    allItem.innerHTML = `<span class="cat-name">Todas</span><span class="cat-count">${allData.length}</span>`;
-    allItem.addEventListener('click', () => { showAll(); setActiveCat(allItem, null); });
-    catList.appendChild(allItem);
-
-    const div = document.createElement('div');
-    div.className = 'sidebar-divider';
-    catList.appendChild(div);
-
     Object.entries(tree).forEach(([cat, subs]) => {
       const total = Object.values(subs).reduce((a, b) => a + b, 0);
       const item = document.createElement('div');
@@ -625,8 +613,7 @@ https://picsum.photos/seed/t3/400/400,Tecnología,Infraestructura`;
       `;
       header.addEventListener('click', (e) => {
         item.classList.toggle('open');
-        setActiveCat(header, cat);
-        showCategory(cat, null);
+        // Only expand/collapse — no images shown at category level
       });
 
       const subList = document.createElement('div');
@@ -649,8 +636,7 @@ https://picsum.photos/seed/t3/400/400,Tecnología,Infraestructura`;
       catList.appendChild(item);
     });
 
-    // Store allItem ref for reset
-    window._allItem = allItem;
+
   }
 
   function setActiveCat(el, cat) {
@@ -666,20 +652,20 @@ https://picsum.photos/seed/t3/400/400,Tecnología,Infraestructura`;
   }
 
   // ── RENDER ──
-  function showAll() {
+  function showEmptySelection() {
     currentCat = null; currentSub = null;
-    setBreadcrumb('Todas las imágenes', null, null, allData.length);
-    renderGallery(allData);
-    if (window._allItem) {
-      document.querySelectorAll('.cat-header, .subcat-item').forEach(e => e.classList.remove('active'));
-      window._allItem.classList.add('active');
-    }
+    document.getElementById('breadcrumb').innerHTML = '<span style="color:var(--muted)">Selecciona una categoría del menú lateral</span>';
+    const gallery = document.getElementById('gallery');
+    gallery.innerHTML = '<div class="state-msg"><span class="ico">👈</span>Elige una categoría o subcategoría para ver las imágenes</div>';
+    gallery.className = 'size-' + currentSize;
   }
+
+
 
   function showCategory(cat, sub) {
     currentCat = cat; currentSub = sub;
     const filtered = allData.filter(d => d.cat === cat && (sub === null || d.sub === sub));
-    setBreadcrumb('Todas', cat, sub, filtered.length);
+    setBreadcrumb(cat, null, sub, filtered.length);
     renderGallery(filtered);
   }
 
@@ -699,9 +685,21 @@ https://picsum.photos/seed/t3/400/400,Tecnología,Infraestructura`;
       card.style.animationDelay = Math.min(i * 20, 400) + 'ms';
 
       const img = document.createElement('img');
-      img.src = d.url;
       img.alt = d.sub;
-      img.loading = 'lazy';
+      img.dataset.src = d.url;
+      img.style.opacity = '0';
+      img.style.transition = 'opacity 0.3s';
+
+      const observer = new IntersectionObserver((entries, obs) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            img.src = img.dataset.src;
+            img.onload = () => { img.style.opacity = '1'; };
+            obs.unobserve(img);
+          }
+        });
+      }, { rootMargin: '150px' });
+      observer.observe(img);
 
       img.onerror = () => {
         card.classList.add('error');
@@ -720,10 +718,9 @@ https://picsum.photos/seed/t3/400/400,Tecnología,Infraestructura`;
     });
   }
 
-  function setBreadcrumb(root, cat, sub, count) {
+  function setBreadcrumb(cat, _unused, sub, count) {
     const bc = document.getElementById('breadcrumb');
-    let html = `<span style="cursor:pointer;color:var(--muted2)" onclick="showAll()">${root}</span>`;
-    if (cat) html += `<span class="bc-sep">›</span><span class="${!sub ? 'bc-active' : ''}" style="cursor:pointer" onclick="showCategory('${cat}',null)">${cat}</span>`;
+    let html = `<span style="color:var(--muted2)">${cat}</span>`;
     if (sub) html += `<span class="bc-sep">›</span><span class="bc-active">${sub}</span>`;
     html += `<span class="bc-count">(${count})</span>`;
     bc.innerHTML = html;
