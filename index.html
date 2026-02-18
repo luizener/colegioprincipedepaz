@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Galería por Categorías</title>
+<title>Salones</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -21,11 +21,12 @@
     --sidebar: 270px;
   }
 
+  html, body { height: 100%; overflow: hidden; }
+
   body {
     background: var(--bg);
     color: var(--text);
     font-family: 'DM Mono', monospace;
-    min-height: 100vh;
     display: flex;
     flex-direction: column;
   }
@@ -127,7 +128,7 @@
     display: flex;
     flex: 1;
     overflow: hidden;
-    height: calc(100vh - 57px);
+    min-height: 0;
   }
 
   /* ── SIDEBAR ── */
@@ -407,7 +408,8 @@
   <h1>Gallery <span>//</span></h1>
 
   <div class="csv-form">
-    <button class="btn btn-primary" onclick="openPasteModal()">📋 Pegar CSV</button>
+    <span id="csv-source" style="font-size:0.68rem;color:var(--muted2);max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+    <button class="btn btn-ghost" onclick="loadCSVAuto()">↻ Recargar</button>
     <button class="btn btn-ghost" onclick="loadDemo()">Demo</button>
   </div>
 
@@ -446,23 +448,21 @@
   </main>
 </div>
 
-<!-- PASTE MODAL -->
-<div id="pasteModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:300;align-items:center;justify-content:center;">
-  <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:1.5rem;width:min(600px,95vw);display:flex;flex-direction:column;gap:1rem;">
+<!-- CONFIG BANNER (shown when CSV_URL is not set) -->
+<div id="configBanner" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:300;align-items:center;justify-content:center;">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:1.8rem;width:min(560px,95vw);display:flex;flex-direction:column;gap:1.2rem;">
     <div style="display:flex;align-items:center;justify-content:space-between;">
-      <span style="font-size:0.7rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);">Pegar contenido del CSV</span>
-      <button class="lb-close" onclick="closePasteModal()" style="position:static;">✕</button>
+      <span style="font-size:0.7rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);">Configurar URL del CSV</span>
+      <button class="lb-close" onclick="closeConfigBanner()" style="position:static;">✕</button>
     </div>
-    <div style="font-size:0.68rem;color:var(--muted2);line-height:1.7;">
-      En Excel Online: selecciona todas las celdas → <kbd style="background:var(--surface2);padding:0.1rem 0.4rem;border-radius:2px;border:1px solid var(--border);">Ctrl+C</kbd> → pega aquí.<br>
-      Columnas esperadas: <code style="color:var(--accent)">url</code>, <code style="color:var(--accent)">categoria</code>, <code style="color:var(--accent)">subcategoria</code>
+    <div style="font-size:0.68rem;color:var(--muted2);line-height:1.9;">
+      Edita el archivo <code style="color:var(--accent);background:var(--surface2);padding:0.1rem 0.4rem;border-radius:2px;">index.html</code> en tu repo de GitHub y cambia la variable <code style="color:var(--accent);background:var(--surface2);padding:0.1rem 0.4rem;border-radius:2px;">CSV_URL</code> al inicio del script:<br><br>
+      <code style="color:var(--accent2);font-size:0.75rem;">const CSV_URL = 'https://raw.githubusercontent.com/luizener/colegioprincipedepaz/refs/heads/main/csvPrueba.csv';</code><br><br>
+      El CSV debe tener columnas: <code style="color:var(--accent)">url</code>, <code style="color:var(--accent)">categoria</code>, <code style="color:var(--accent)">subcategoria</code>
     </div>
-    <textarea id="csvPaste" rows="10" style="background:var(--bg);border:1px solid var(--border);border-radius:3px;color:var(--text);font-family:'DM Mono',monospace;font-size:0.72rem;padding:0.8rem;outline:none;resize:vertical;line-height:1.6;" placeholder="url	categoria	subcategoria
-https://...	Campaña 2024	Exteriores
-https://...	Campaña 2024	Interiores"></textarea>
     <div style="display:flex;gap:0.6rem;justify-content:flex-end;">
-      <button class="btn btn-ghost" onclick="closePasteModal()">Cancelar</button>
-      <button class="btn btn-primary" onclick="loadFromPaste()">▶ Cargar galería</button>
+      <button class="btn btn-ghost" onclick="closeConfigBanner()">Cerrar</button>
+      <button class="btn btn-primary" onclick="loadDemo();closeConfigBanner()">Ver Demo</button>
     </div>
   </div>
 </div>
@@ -474,6 +474,36 @@ https://...	Campaña 2024	Interiores"></textarea>
 </div>
 
 <script>
+  // ── CSV URL CONFIG ──
+  // 👇 Cambia esta URL por la de tu CSV en GitHub raw
+  const CSV_URL = '';
+  // Ejemplo: const CSV_URL = 'https://raw.githubusercontent.com/usuario/repo/main/datos.csv';
+
+  async function loadCSVAuto() {
+    if (!CSV_URL) { openConfigBanner(); return; }
+    setStatus('Cargando...');
+    try {
+      const res = await fetch(CSV_URL + '?t=' + Date.now());
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const text = await res.text();
+      parseAndRender(text);
+      document.getElementById('csv-source').textContent = CSV_URL.split('/').pop();
+    } catch(e) {
+      setStatus('Error al cargar CSV');
+      alert('No se pudo cargar el CSV.
+Verifica que la URL sea pública y correcta.
+
+' + e.message);
+    }
+  }
+
+  function openConfigBanner()  { document.getElementById('configBanner').style.display = 'flex'; }
+  function closeConfigBanner() { document.getElementById('configBanner').style.display = 'none'; }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    if (CSV_URL) { loadCSVAuto(); } else { openConfigBanner(); }
+  });
+
   // ── STATE ──
   let allData = [];
   let currentCat = null;
@@ -713,6 +743,21 @@ https://picsum.photos/seed/t3/400/400,Tecnología,Infraestructura`;
   // ── STATUS ──
   function setStatus(msg) { document.getElementById('status').textContent = msg; }
 
+  // ── FILE UPLOAD ──
+  function loadFromFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    setStatus('Leyendo archivo...');
+    const reader = new FileReader();
+    reader.onload = e => {
+      parseAndRender(e.target.result);
+      setStatus(file.name + ' · ' + allData.length + ' imágenes');
+    };
+    reader.onerror = () => alert('Error al leer el archivo');
+    reader.readAsText(file, 'UTF-8');
+    event.target.value = '';
+  }
+
   // ── LIGHTBOX ──
   function openLightbox(src) {
     document.getElementById('lb-img').src = src;
@@ -725,7 +770,7 @@ https://picsum.photos/seed/t3/400/400,Tecnología,Infraestructura`;
     document.body.style.overflow = '';
   }
 
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeLightbox(); closePasteModal(); } });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeLightbox(); closeConfigBanner(); } });
 </script>
 </body>
 </html>
